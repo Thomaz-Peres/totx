@@ -101,7 +101,7 @@ impl Scanner {
     fn is_operator(&self, c: char) -> bool {
         c == '>' || c == '<' || c == '=' || c == '!'
     }
-    
+
     fn is_space(&self, c: char) -> bool {
         c == ' ' || c == '\t' || c == '\n' || c == '\r'
     }

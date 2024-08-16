@@ -1,8 +1,9 @@
 mod parser;
-mod lexycal;
+mod scanner;
+mod token;
 
-use parser::parser::Parser;
-use lexycal::scanner::Scanner;
+use parser::Parser;
+use scanner::Scanner;
 
 fn main() {
     // let filename = fs::read_to_string("./input.isi")
