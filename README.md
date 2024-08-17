@@ -2,3 +2,5 @@ Starting the Crafting Compilers, after I started watching the youtube video [her
 
 
 This is old code, on that [repo](https://github.com/Thomaz-Peres/Study-Notes/tree/master/Computer_Science/Compiler_Interpreters/rust), when I was watching the Youtube video, and I'm going to start from here.
+
+#the teste

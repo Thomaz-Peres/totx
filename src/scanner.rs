@@ -58,7 +58,7 @@ impl Scanner {
                 }
                 2 => {
                     self.back();
-                    let token = Token::new_token(TokenEnum::TkIdentifier, term);
+                    let token = Token::new_token(TokenEnum::Identifier, term);
                     return Ok(token);
                 }
                 3 => {
@@ -74,12 +74,12 @@ impl Scanner {
                 }
                 4 => {
                     self.back();
-                    let token = Token::new_token(TokenEnum::TkNumber, term);
+                    let token = Token::new_token(TokenEnum::Number, term);
                     return Ok(token);
                 }
                 5 => {
                     term.push(current_char);
-                    let token = Token::new_token(TokenEnum::TkOperator, term);
+                    let token = Token::new_token(TokenEnum::Operator, term);
                     return Ok(token);
                 }
                 _ => {

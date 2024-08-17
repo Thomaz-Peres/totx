@@ -6,11 +6,11 @@ pub struct Token {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenEnum {
-    TkIdentifier,
-    TkNumber,
-    TkOperator,
-    TkPonctuation,
-    TkAssign
+    Identifier,
+    Number,
+    Operator,
+    Pontuation,
+    Assign
 }
 
 impl Token {

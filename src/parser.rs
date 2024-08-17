@@ -24,7 +24,7 @@ impl Parser {
     }
 
     pub fn el(&self) {
-        if self.current_token.get_type() != &TokenEnum::TkOperator {
+        if self.current_token.get_type() != &TokenEnum::Operator {
             self.op();
             self.t();
             self.el();
@@ -33,21 +33,21 @@ impl Parser {
 
     pub fn t(&self) -> Result<(), &'static str> {
         let x = self.current_token.get_type();
-        if (x == &TokenEnum::TkIdentifier && x == &TokenEnum::TkNumber)
+        if (x == &TokenEnum::Identifier && x == &TokenEnum::Number)
         {
             Ok(())
         } else {
             Err("ID or Number expected")
         }
         // match  {
-        //     TokenEnum::TkIdentifier | TokenEnum::TkNumber => Ok(()),
+        //     TokenEnum::Identifier | TokenEnum::Number => Ok(()),
         //     _ => Err("ID or Number expected"),
         // }
     }
 
     pub fn op(&self) -> Result<(), &'static str> {
         match self.current_token.get_type() {
-            TokenEnum::TkOperator => Ok(()),
+            TokenEnum::Operator => Ok(()),
             _ => Err("Operator expected"),
         }
     }
