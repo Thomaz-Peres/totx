@@ -1,38 +1,36 @@
 mod parser;
 mod scanner;
 mod token;
+mod exception;
 
-use parser::Parser;
+use clap::Parser;
+use token::Token;
+use std::{ env, fs, path::PathBuf, process, result };
+
+// use parser::Parser;
 use scanner::Scanner;
 
+
+#[derive(Parser, Debug)]
+struct Args {
+    file: PathBuf,
+}
+
 fn main() {
-    // let filename = fs::read_to_string("./input.isi")
-    //                 .expect("Fail to read the file");
+    let args: Vec<String> = env::args().collect();
+    // let args = Args::parse();
 
-    // print!("{filename}");
-    let mut scan = Scanner::new();
-    // print!("{:?}", scan.);
-    let x = scan.next_token().unwrap();
-    // print!("{:?}", x);
-    let _parser = Parser::new(&scan.clone(), &scan.clone().next_token().unwrap());
-
-    _parser.e();
-    loop {
-        let token = scan.next_token().expect("teste");
-        println!("{:?}" ,token);
-        // if let Err(e) = token {
-        //     println!("Application error: {e}");
-        // };
+    if args.len() > 1 {
+        dbg!("Usage: totx [script]");
+        process::exit(64);
     }
 
-    // let mut some_while: bool = false;
+    let source = fs::read_to_string(&args[1]).expect("Unable to read the file");
 
-    // while some_while == false {
-    //     let token = scan.next_token();
-    //     if !token.is_none() {
-    //         println!("{:?}" ,token);
-    //     } else if token.is_none() {
-    //         some_while = true;
-    //     }
+    let scanner = Scanner::new(&source);
+    let tokens = scanner;
+
+    // else {
+    //     run_prompt();
     // }
 }
