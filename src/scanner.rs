@@ -268,7 +268,7 @@ impl Scanner {
 
         let token_type = match TokenEnum::from_str(&text) {
             Ok(token_type) => token_type,
-            Err(error) => TokenEnum::Null
+            Err(()) => TokenEnum::Identifier
         };
 
         self.add_token(token_type);
