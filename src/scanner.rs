@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{exception, token::Literal};
 
 use super::token::{Token, TokenEnum};
@@ -27,7 +29,6 @@ impl Scanner {
     pub fn scan_tokens(&mut self)  {
         while !self.is_end()  {
             self.start = self.current;
-            self.start += 1;
 
             self.scan_token()
         }
@@ -55,10 +56,23 @@ impl Scanner {
             '+' => self.add_token(TokenEnum::Plus),
             ';' => self.add_token(TokenEnum::SemiColon),
             '*' => self.add_token(TokenEnum::Star),
-            '!' => self.add_token(if self.match_char('+'){ TokenEnum::BangEqual    } else { TokenEnum::Bang    }),
-            '=' => self.add_token(if self.match_char('='){ TokenEnum::EqualEqual   } else { TokenEnum::Equal   }),
-            '<' => self.add_token(if self.match_char('='){ TokenEnum::LessEqual    } else { TokenEnum::Less    }),
-            '>' => self.add_token(if self.match_char('='){ TokenEnum::GreaterEqual } else { TokenEnum::Greater }),
+
+            '!' => {
+                let token_type = if self.match_char('+'){ TokenEnum::BangEqual    } else { TokenEnum::Bang    };
+                self.add_token(token_type);
+            }
+            '=' => {
+                let token_type = if self.match_char('='){ TokenEnum::EqualEqual   } else { TokenEnum::Equal   };
+                self.add_token(token_type);
+            }
+            '<' => {
+                let token_type = if self.match_char('='){ TokenEnum::LessEqual    } else { TokenEnum::Less    };
+                self.add_token(token_type);
+            }
+            '>' => {
+                let token_type = if self.match_char('='){ TokenEnum::GreaterEqual } else { TokenEnum::Greater };
+                self.add_token(token_type);
+            }
             '/' => {
                 if self.match_char('/') {
                     // A comment goes until the end of the line
@@ -70,9 +84,21 @@ impl Scanner {
                 }
             }
             '\n' => self.line += 1,
-            ' ' | '\r' | '\t' => self.current += 1,
+
+            ' ' | '\r' | '\t' => (),
+
             '"' => self.string(),
-            _   => exception::Exception::error(self.line, "Unexpected character."),
+            __  => {
+                // let char = self.peek().unwrap();
+
+                if self.is_digit(c) {
+                    self.number();
+                } else if self.is_alpha(c) {
+                    self.identifier();
+                } else {
+                    exception::Exception::error(self.line, "Unexpected character.");
+                }
+            }
         }
     }
 
@@ -150,7 +176,8 @@ impl Scanner {
     // }
 
     fn advance(&mut self) -> Option<char> {
-        self.get_char(self.current + 1)
+        self.current += 1;
+        self.get_char(self.current - 1)
     }
 
     fn add_token(&mut self, token_type: TokenEnum) {
@@ -207,6 +234,56 @@ impl Scanner {
         self.add_token_base(TokenEnum::String, Literal::String(value));
     }
 
+    fn number(&mut self) {
+        while self.is_digit(self.peek().unwrap()){
+            self.advance();
+        }
+
+        // Fractional numbers
+        if self.peek().unwrap() == '.' && self.is_digit(self.peek_next().unwrap()) {
+            self.advance();
+
+            while self.is_digit(self.peek().unwrap()) {
+                self.advance();
+            }
+        }
+
+        let value: i64 = self.source[self.start..self.current].parse().unwrap();
+        self.add_token_base(TokenEnum::Number, Literal::Number(value))
+    }
+
+    fn peek_next(&self) -> Option<char> {
+        if self.current + 1 >= self.source.len() {
+            return Some('\0');
+        }
+        self.get_char(self.current + 1)
+    }
+
+    fn identifier(&mut self) {
+        while self.is_alpha_numeric(self.peek().unwrap()) {
+            self.advance();
+        }
+
+        let text = &self.source[self.start..self.current];
+
+        let token_type = match TokenEnum::from_str(&text) {
+            Ok(token_type) => token_type,
+            Err(error) => TokenEnum::Null
+        };
+
+        self.add_token(token_type);
+    }
+
+    fn is_alpha(&self, c: char) -> bool {
+        (c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        c == '_'
+    }
+
+    fn is_alpha_numeric(&self, c: char) -> bool {
+        self.is_alpha(c) || self.is_digit(c)
+    }
+
     fn is_digit(&self, c: char) -> bool {
         c >= '0' && c <= '9'
     }
@@ -232,8 +309,8 @@ impl Scanner {
         c == '\0'
     }
 
-    pub fn back(&mut self) {
-        self.estado = 0;
-        self.pos -= 1;
-    }
+    // pub fn back(&mut self) {
+    //     self.estado = 0;
+    //     self.pos -= 1;
+    // }
 }

@@ -1,4 +1,3 @@
-// use core::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -28,7 +27,7 @@ pub enum TokenEnum {
 
     // Literal
     String,
-    Integer,
+    Number,
     Identifier,
 
     // Keywords
@@ -64,25 +63,25 @@ impl FromStr for TokenEnum {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "String" => Ok(TokenEnum::String),
-            "And"    => Ok(TokenEnum::And),
-            "Class"  => Ok(TokenEnum::Class),
-            "Else"   => Ok(TokenEnum::Else),
-            "False"  => Ok(TokenEnum::False),
-            "Fun"    => Ok(TokenEnum::Fun),
-            "For"    => Ok(TokenEnum::For),
-            "If"     => Ok(TokenEnum::If),
-            "Null"   => Ok(TokenEnum::Null),
-            "Or"     => Ok(TokenEnum::Or),
-            "Print"  => Ok(TokenEnum::Print),
-            "Return" => Ok(TokenEnum::Return),
-            "Super"  => Ok(TokenEnum::Super),
-            "This"   => Ok(TokenEnum::This),
-            "True"   => Ok(TokenEnum::True),
-            "Var"    => Ok(TokenEnum::Var),
-            "While"  => Ok(TokenEnum::While),
-            "EOF"    => Ok(TokenEnum::EOF),
-            _        => Err(())
+            "String" | "string" => Ok(TokenEnum::String),
+            "And"    | "and"    => Ok(TokenEnum::And),
+            "Class"  | "class"  => Ok(TokenEnum::Class),
+            "Else"   | "else"   => Ok(TokenEnum::Else),
+            "False"  | "false"  => Ok(TokenEnum::False),
+            "Fun"    | "fun"    => Ok(TokenEnum::Fun),
+            "For"    | "for"    => Ok(TokenEnum::For),
+            "If"     | "if"     => Ok(TokenEnum::If),
+            "Null"   | "null"   => Ok(TokenEnum::Null),
+            "Or"     | "or"     => Ok(TokenEnum::Or),
+            "Print"  | "print"  => Ok(TokenEnum::Print),
+            "Return" | "return" => Ok(TokenEnum::Return),
+            "Super"  | "super"  => Ok(TokenEnum::Super),
+            "This"   | "this"   => Ok(TokenEnum::This),
+            "True"   | "true"   => Ok(TokenEnum::True),
+            "Var"    | "var"    => Ok(TokenEnum::Var),
+            "While"  | "while"  => Ok(TokenEnum::While),
+            "EOF"               => Ok(TokenEnum::EOF),
+            _                   => Err(())
         }
     }
 }
@@ -96,7 +95,7 @@ impl FromStr for TokenEnum {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     String(String),
-    Integer(i64),
+    Number(i64),
     Bool(bool),
     None
 }
