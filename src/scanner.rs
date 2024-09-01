@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{exception, token::Literal};
+use crate::{exception::{self, Exception}, token::Literal};
 
 use super::token::{Token, TokenEnum};
 
@@ -26,21 +26,24 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self)  {
+    pub fn scan_tokens(&mut self) -> Result<(), Exception> {
         while !self.is_end()  {
             self.start = self.current;
 
-            self.scan_token()
+            match self.scan_token() {
+                Ok(()) => (),
+                Err(e) => return Err(e),
+            }
         }
 
-        self.tokens.push(Token::new(TokenEnum::EOF, String::new(), Default::default(), self.line));
+        Ok(self.tokens.push(Token::new(TokenEnum::EOF, String::new(), Default::default(), self.line)))
     }
 
-    fn scan_token(&mut self) {
+    fn scan_token(&mut self) -> Result<(), Exception> {
         let c: Option<char> = self.advance();
 
         if c.is_none() {
-            return exception::Exception::error(self.line, "");
+            return Err(exception::Exception::error(self.line, ""));
         }
 
         let c = c.unwrap();
@@ -87,7 +90,7 @@ impl Scanner {
 
             ' ' | '\r' | '\t' => (),
 
-            '"' => self.string(),
+            '"' => self.string()?,
             __  => {
                 // let char = self.peek().unwrap();
 
@@ -100,6 +103,7 @@ impl Scanner {
                 }
             }
         }
+        Ok(())
     }
 
     // pub fn next_token(&mut self) -> Result<Token, &'static str> {
@@ -216,7 +220,7 @@ impl Scanner {
         self.get_char(self.current)
     }
 
-    fn string(&mut self) {
+    fn string(&mut self) -> Result<(), Exception> {
         while self.peek().unwrap() != '"' && !self.is_end() {
             if self.peek().unwrap() == '\n' {
                 self.line += 1;
@@ -225,13 +229,15 @@ impl Scanner {
         }
 
         if self.is_end() {
-            return exception::Exception::error(self.line, "Unterminated string.");
+            return Err(exception::Exception::error(self.line, "Unterminated string."));
         }
 
         self.advance();
 
         let value = self.source[self.start + 1..self.current - 1].to_string();
         self.add_token_base(TokenEnum::String, Literal::String(value));
+
+        Ok(())
     }
 
     fn number(&mut self) {
@@ -313,4 +319,23 @@ impl Scanner {
     //     self.estado = 0;
     //     self.pos -= 1;
     // }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let scanner = Scanner::new("var result = 1;").scan_tokens();
+
+        assert!(scanner.is_ok());
+    }
+
+    #[test]
+    fn error() {
+        let scanner = Scanner::new("var res").scan_tokens();
+
+        assert!(scanner.is_err());
+    }
 }

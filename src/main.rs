@@ -29,7 +29,7 @@ fn main() {
 
     let scanner = Scanner::new(&source).scan_tokens();
 
-    println!("{:?}", scanner);
+    // println!("{:?}", scanner);
     // let tokens = scanner;
 
     // else {
