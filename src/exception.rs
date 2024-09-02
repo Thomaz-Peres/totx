@@ -1,11 +1,30 @@
-pub struct Exception;
+use core::fmt;
+
+#[derive(Debug, Clone)]
+pub struct Exception {
+    line: u32,
+    message: String,
+    where_r: String
+}
+
+pub type Result<T> = std::result::Result<T, Exception>;
+
+impl fmt::Display for Exception {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[Line - {} ] \n Error {} + : {}", self.line, self.where_r, self.message)
+    }
+}
 
 impl Exception {
-    pub fn error(line: u32, message: &str) -> Self {
-        Self::report(line, "", message)
+    fn new(line: u32, where_r: &str, message: &str) -> Self {
+        Self {
+            line: line,
+            message: message.to_string(),
+            where_r: where_r.to_string()
+        }
     }
 
-    fn report(line: u32, where_r: &str, message: &str) -> Self {
-        panic!("[Line - {line} ] \n Error  {where_r} + : {message}");
+    pub fn error(line: u32, message: &str) -> Result<()> {
+        Err(Exception::new(line, "", message))
     }
 }

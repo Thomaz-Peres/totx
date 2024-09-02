@@ -4,6 +4,7 @@ use crate::{exception::{self, Exception}, token::Literal};
 
 use super::token::{Token, TokenEnum};
 
+
 #[derive(Debug, Clone)]
 pub struct Scanner {
     source: String,
@@ -26,7 +27,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<(), Exception> {
+    pub fn scan_tokens(&mut self) -> exception::Result<()> {
         while !self.is_end()  {
             self.start = self.current;
 
@@ -39,11 +40,11 @@ impl Scanner {
         Ok(self.tokens.push(Token::new(TokenEnum::EOF, String::new(), Default::default(), self.line)))
     }
 
-    fn scan_token(&mut self) -> Result<(), Exception> {
+    fn scan_token(&mut self) -> exception::Result<()> {
         let c: Option<char> = self.advance();
 
         if c.is_none() {
-            return Err(exception::Exception::error(self.line, ""));
+            return Exception::error(self.line, "");
         }
 
         let c = c.unwrap();
@@ -220,7 +221,7 @@ impl Scanner {
         self.get_char(self.current)
     }
 
-    fn string(&mut self) -> Result<(), Exception> {
+    fn string(&mut self) -> exception::Result<()> {
         while self.peek().unwrap() != '"' && !self.is_end() {
             if self.peek().unwrap() == '\n' {
                 self.line += 1;
@@ -229,7 +230,7 @@ impl Scanner {
         }
 
         if self.is_end() {
-            return Err(exception::Exception::error(self.line, "Unterminated string."));
+            return exception::Exception::error(self.line, "Unterminated string.")
         }
 
         self.advance();
@@ -334,7 +335,7 @@ mod tests {
 
     #[test]
     fn error() {
-        let scanner = Scanner::new("var res").scan_tokens();
+        let scanner = Scanner::new(r#"var "res""#).scan_tokens();
 
         assert!(scanner.is_err());
     }
