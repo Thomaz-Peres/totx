@@ -77,16 +77,7 @@ impl Scanner {
                 let token_type = if self.match_char('='){ TokenEnum::GreaterEqual } else { TokenEnum::Greater };
                 self.add_token(token_type);
             }
-            '/' => {
-                if self.match_char('/') {
-                    // A comment goes until the end of the line
-                    while self.peek().unwrap() != '\n' && !self.is_end() {
-                        self.advance();
-                    }
-                } else {
-                    self.add_token(TokenEnum::Slash);
-                }
-            }
+            '/' => self.comments()?,
             '\n' => self.line += 1,
 
             ' ' | '\r' | '\t' => (),
@@ -207,6 +198,27 @@ impl Scanner {
         self.current += 1;
 
         true
+    }
+
+
+    fn comments(&mut self) -> exception::Result<()> {
+        if self.match_char('/') {
+            // A comment goes until the end of the line
+            while self.peek().unwrap() != '\n' && !self.is_end() {
+                self.advance();
+            }
+        } else if self.match_char('*')  {
+            while self.peek().unwrap() != '*' && self.peek_next().unwrap() != '/' && !self.is_end() {
+                if self.peek().unwrap() == '\n' {
+                    self.line += 1;
+                };
+                self.advance();
+            }
+        }  else {
+            self.add_token(TokenEnum::Slash);
+        }
+
+        Ok(())
     }
 
     fn get_char(&self, index: usize) -> Option<char> {
@@ -335,8 +347,16 @@ mod tests {
 
     #[test]
     fn error() {
-        let scanner = Scanner::new(r#"var "res""#).scan_tokens();
+        let scanner = Scanner::new(r#"var "res"#).scan_tokens();
 
         assert!(scanner.is_err());
+    }
+
+    #[test]
+    fn comments() {
+        let scanner = Scanner::new(r#"var "res" /* teste
+        tete */ "#).scan_tokens();
+
+        assert!(scanner.is_ok());
     }
 }
