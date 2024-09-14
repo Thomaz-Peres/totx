@@ -354,8 +354,8 @@ mod tests {
 
     #[test]
     fn comments() {
-        let scanner = Scanner::new(r#"var "res" /* teste
-        tete */ "#).scan_tokens();
+        let scanner = Scanner::new(r#"var = /* teste
+        tete */ "res""#).scan_tokens();
 
         assert!(scanner.is_ok());
     }
