@@ -1,3 +1,17 @@
+use crate::token::Token;
+
+#[derive(Debug, Clone)]
+pub struct Parser {
+    operator: Token,
+    left:  Expr,
+    right: Expr,
+}
+
+#[derive(Debug, Clone)]
+pub enum Expr {
+    Binary
+}
+
 // use crate::{
 //     token::{Token, TokenEnum},
 //     Scanner,
