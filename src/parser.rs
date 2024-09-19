@@ -1,15 +1,18 @@
-use crate::token::Token;
+use crate::token::{Literal, Token};
 
-#[derive(Debug, Clone)]
-pub struct Parser {
-    operator: Token,
-    left:  Expr,
-    right: Expr,
-}
+// #[derive(Debug, Clone)]
+// pub struct Parser {
+//     operator: Token,
+//     left:  Expr,
+//     right: Expr,
+// }
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Binary
+    Binary { operator: Token, left: Box<Expr>, right: Box<Expr>, },
+    Grouping{ expression: Box<Expr>, },
+    Literal{ value: Literal, },
+    Unary{ operaton: Token, right: Box<Expr>, },
 }
 
 // use crate::{
