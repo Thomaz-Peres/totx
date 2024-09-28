@@ -1,3 +1,5 @@
+use std::fmt::Binary;
+
 use crate::token::{Literal, Token};
 
 // #[derive(Debug, Clone)]
@@ -8,11 +10,28 @@ use crate::token::{Literal, Token};
 // }
 
 #[derive(Debug, Clone)]
-pub enum Expr {
+enum Expr {
     Binary { operator: Token, left: Box<Expr>, right: Box<Expr>, },
-    Grouping{ expression: Box<Expr>, },
-    Literal{ value: Literal, },
-    Unary{ operaton: Token, right: Box<Expr>, },
+    Grouping { expression: Box<Expr>, },
+    Literal { value: Literal, },
+    Unary { operaton: Token, right: Box<Expr>, },
+}
+
+type Exprs = Expr;
+
+impl Expr {
+    fn accept(&self) -> String {
+        match self {
+            Self::Binary { operator, left, right } => String::new(),
+            Self::Grouping { expression } => String::new(),
+            Self::Literal { value } => String::new(),
+            Self::Unary { operaton, right } => String::new(),
+        }
+    }
+
+    fn print(&self) -> String {
+        self.accept()
+    }
 }
 
 // use crate::{
