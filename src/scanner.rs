@@ -1,9 +1,11 @@
 use std::str::FromStr;
 
-use crate::{exception::{self, Exception}, token::Literal};
+use crate::{
+    exception::{self, Exception},
+    token::Literal,
+};
 
 use super::token::{Token, TokenEnum};
-
 
 #[derive(Debug, Clone)]
 pub struct Scanner {
@@ -13,7 +15,7 @@ pub struct Scanner {
     // and current points at the character currently being considered.
     start: usize,
     current: usize,
-    line: u32
+    line: u32,
 }
 
 impl Scanner {
@@ -23,12 +25,12 @@ impl Scanner {
             tokens: Vec::new(),
             start: 0,
             current: 0,
-            line: 1
+            line: 1,
         }
     }
 
     pub fn scan_tokens(&mut self) -> exception::Result<()> {
-        while !self.is_end()  {
+        while !self.is_end() {
             self.start = self.current;
 
             match self.scan_token() {
@@ -37,7 +39,12 @@ impl Scanner {
             }
         }
 
-        Ok(self.tokens.push(Token::new(TokenEnum::EOF, String::new(), Default::default(), self.line)))
+        Ok(self.tokens.push(Token::new(
+            TokenEnum::EOF,
+            String::new(),
+            Default::default(),
+            self.line,
+        )))
     }
 
     fn scan_token(&mut self) -> exception::Result<()> {
@@ -62,28 +69,46 @@ impl Scanner {
             '*' => self.add_token(TokenEnum::Star),
 
             '!' => {
-                let token_type = if self.match_char('+'){ TokenEnum::BangEqual    } else { TokenEnum::Bang    };
+                let token_type = if self.match_char('+') {
+                    TokenEnum::BangEqual
+                } else {
+                    TokenEnum::Bang
+                };
                 self.add_token(token_type);
             }
             '=' => {
-                let token_type = if self.match_char('='){ TokenEnum::EqualEqual   } else { TokenEnum::Equal   };
+                let token_type = if self.match_char('=') {
+                    TokenEnum::EqualEqual
+                } else {
+                    TokenEnum::Equal
+                };
                 self.add_token(token_type);
             }
             '<' => {
-                let token_type = if self.match_char('='){ TokenEnum::LessEqual    } else { TokenEnum::Less    };
+                let token_type = if self.match_char('=') {
+                    TokenEnum::LessEqual
+                } else {
+                    TokenEnum::Less
+                };
                 self.add_token(token_type);
             }
             '>' => {
-                let token_type = if self.match_char('='){ TokenEnum::GreaterEqual } else { TokenEnum::Greater };
+                let token_type = if self.match_char('=') {
+                    TokenEnum::GreaterEqual
+                } else {
+                    TokenEnum::Greater
+                };
                 self.add_token(token_type);
             }
             '/' => self.comments()?,
+
             '\n' => self.line += 1,
 
             ' ' | '\r' | '\t' => (),
 
             '"' => self.string()?,
-            __  => {
+
+            __ => {
                 // let char = self.peek().unwrap();
 
                 if self.is_digit(c) {
@@ -91,12 +116,205 @@ impl Scanner {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    exception::Exception::error(self.line, "Unexpected character.");
+                    return exception::Exception::error(self.line, "Unexpected character.");
                 }
             }
         }
         Ok(())
     }
+
+    fn advance(&mut self) -> Option<char> {
+        self.current += 1;
+        self.get_char(self.current - 1)
+    }
+
+    fn add_token(&mut self, token_type: TokenEnum) {
+        self.add_token_base(token_type, Literal::None)
+    }
+
+    fn add_token_base(&mut self, token_type: TokenEnum, literal: Literal) {
+        let text = String::from(&self.source[self.start..self.current]);
+
+        self.tokens
+            .push(Token::new(token_type, text, literal, self.line))
+    }
+
+    fn match_char(&mut self, expected: char) -> bool {
+        if self.is_end() {
+            return false;
+        }
+
+        if self.get_char(self.current).unwrap() != expected {
+            return false;
+        }
+
+        self.current += 1;
+
+        true
+    }
+
+    fn comments(&mut self) -> exception::Result<()> {
+        if self.match_char('/') {
+            // A comment goes until the end of the line
+            while self.peek().unwrap() != '\n' && !self.is_end() {
+                self.advance();
+            }
+        } else if self.match_char('*') {
+            while self.peek().unwrap() != '*' && self.peek_next().unwrap() != '/' && !self.is_end()
+            {
+                if self.peek().unwrap() == '\n' {
+                    self.line += 1;
+                };
+                self.advance();
+            }
+        } else {
+            self.add_token(TokenEnum::Slash);
+        }
+
+        Ok(())
+    }
+
+    fn get_char(&self, index: usize) -> Option<char> {
+        self.source.chars().nth(index)
+    }
+
+    fn peek(&self) -> Option<char> {
+        if self.is_end() {
+            return Some('\0');
+        }
+
+        self.get_char(self.current)
+    }
+
+    fn string(&mut self) -> exception::Result<()> {
+        while self.peek().unwrap() != '"' && !self.is_end() {
+            if self.peek().unwrap() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_end() {
+            return exception::Exception::error(self.line, "Unterminated string.");
+        }
+
+        self.advance();
+
+        let value = self.source[self.start + 1..self.current - 1].to_string();
+        self.add_token_base(TokenEnum::String, Literal::String(value));
+
+        Ok(())
+    }
+
+    fn number(&mut self) {
+        while self.is_digit(self.peek().unwrap()) {
+            self.advance();
+        }
+
+        // Fractional numbers
+        if self.peek().unwrap() == '.' && self.is_digit(self.peek_next().unwrap()) {
+            self.advance();
+
+            while self.is_digit(self.peek().unwrap()) {
+                self.advance();
+            }
+        }
+
+        let value: i64 = self.source[self.start..self.current].parse().unwrap();
+        self.add_token_base(TokenEnum::Number, Literal::Number(value))
+    }
+
+    fn peek_next(&self) -> Option<char> {
+        if self.current + 1 >= self.source.len() {
+            return Some('\0');
+        }
+        self.get_char(self.current + 1)
+    }
+
+    fn identifier(&mut self) {
+        while self.is_alpha_numeric(self.peek().unwrap()) {
+            self.advance();
+        }
+
+        let text = &self.source[self.start..self.current];
+
+        let token_type = match TokenEnum::from_str(&text) {
+            Ok(token_type) => token_type,
+            Err(()) => TokenEnum::Identifier,
+        };
+
+        self.add_token(token_type);
+    }
+
+    fn is_alpha(&self, c: char) -> bool {
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+    }
+
+    fn is_alpha_numeric(&self, c: char) -> bool {
+        self.is_alpha(c) || self.is_digit(c)
+    }
+
+    fn is_digit(&self, c: char) -> bool {
+        c >= '0' && c <= '9'
+    }
+
+    fn is_char(&self, c: char) -> bool {
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+    }
+
+    fn is_operator(&self, c: char) -> bool {
+        c == '>' || c == '<' || c == '=' || c == '!'
+    }
+
+    fn is_white_space(&self, c: char) -> bool {
+        c == ' ' || c == '\t' || c == '\r'
+    }
+
+    // Pretty much the same as I was doing before, happy
+    fn is_end(&self) -> bool {
+        &self.current >= &self.source.len()
+    }
+
+    fn is_char_end(&self, c: char) -> bool {
+        c == '\0'
+    }
+
+    // pub fn back(&mut self) {
+    //     self.estado = 0;
+    //     self.pos -= 1;
+    // }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let scanner = Scanner::new("var result = 1;").scan_tokens();
+
+        assert!(scanner.is_ok());
+    }
+
+    #[test]
+    fn error() {
+        let scanner = Scanner::new(r#"var "res"#).scan_tokens();
+
+        assert!(scanner.is_err());
+    }
+
+    #[test]
+    fn comments() {
+        let scanner = Scanner::new(
+            r#"var = /* teste
+        tete */ "res""#,
+        )
+        .scan_tokens();
+
+        assert!(scanner.is_ok());
+    }
+}
+
 
     // pub fn next_token(&mut self) -> Result<Token, &'static str> {
     //     if self.is_end() {
@@ -170,193 +388,3 @@ impl Scanner {
     //         }
     //     }
     // }
-
-    fn advance(&mut self) -> Option<char> {
-        self.current += 1;
-        self.get_char(self.current - 1)
-    }
-
-    fn add_token(&mut self, token_type: TokenEnum) {
-        self.add_token_base(token_type, Literal::None)
-    }
-
-    fn add_token_base(&mut self, token_type: TokenEnum, literal: Literal) {
-        let text = String::from(&self.source[self.start..self.current]);
-
-        self.tokens.push(Token::new(token_type, text, literal, self.line))
-    }
-
-    fn match_char(&mut self, expected: char) -> bool {
-        if self.is_end() {
-            return false;
-        }
-
-        if self.get_char(self.current).unwrap() != expected {
-            return false;
-        }
-
-        self.current += 1;
-
-        true
-    }
-
-
-    fn comments(&mut self) -> exception::Result<()> {
-        if self.match_char('/') {
-            // A comment goes until the end of the line
-            while self.peek().unwrap() != '\n' && !self.is_end() {
-                self.advance();
-            }
-        } else if self.match_char('*')  {
-            while self.peek().unwrap() != '*' && self.peek_next().unwrap() != '/' && !self.is_end() {
-                if self.peek().unwrap() == '\n' {
-                    self.line += 1;
-                };
-                self.advance();
-            }
-        }  else {
-            self.add_token(TokenEnum::Slash);
-        }
-
-        Ok(())
-    }
-
-    fn get_char(&self, index: usize) -> Option<char> {
-        self.source.chars().nth(index)
-    }
-
-    fn peek(&self) -> Option<char> {
-        if self.is_end() {
-            return Some('\0')
-        }
-
-        self.get_char(self.current)
-    }
-
-    fn string(&mut self) -> exception::Result<()> {
-        while self.peek().unwrap() != '"' && !self.is_end() {
-            if self.peek().unwrap() == '\n' {
-                self.line += 1;
-            }
-            self.advance();
-        }
-
-        if self.is_end() {
-            return exception::Exception::error(self.line, "Unterminated string.")
-        }
-
-        self.advance();
-
-        let value = self.source[self.start + 1..self.current - 1].to_string();
-        self.add_token_base(TokenEnum::String, Literal::String(value));
-
-        Ok(())
-    }
-
-    fn number(&mut self) {
-        while self.is_digit(self.peek().unwrap()){
-            self.advance();
-        }
-
-        // Fractional numbers
-        if self.peek().unwrap() == '.' && self.is_digit(self.peek_next().unwrap()) {
-            self.advance();
-
-            while self.is_digit(self.peek().unwrap()) {
-                self.advance();
-            }
-        }
-
-        let value: i64 = self.source[self.start..self.current].parse().unwrap();
-        self.add_token_base(TokenEnum::Number, Literal::Number(value))
-    }
-
-    fn peek_next(&self) -> Option<char> {
-        if self.current + 1 >= self.source.len() {
-            return Some('\0');
-        }
-        self.get_char(self.current + 1)
-    }
-
-    fn identifier(&mut self) {
-        while self.is_alpha_numeric(self.peek().unwrap()) {
-            self.advance();
-        }
-
-        let text = &self.source[self.start..self.current];
-
-        let token_type = match TokenEnum::from_str(&text) {
-            Ok(token_type) => token_type,
-            Err(()) => TokenEnum::Identifier
-        };
-
-        self.add_token(token_type);
-    }
-
-    fn is_alpha(&self, c: char) -> bool {
-        (c >= 'a' && c <= 'z') ||
-        (c >= 'A' && c <= 'Z') ||
-        c == '_'
-    }
-
-    fn is_alpha_numeric(&self, c: char) -> bool {
-        self.is_alpha(c) || self.is_digit(c)
-    }
-
-    fn is_digit(&self, c: char) -> bool {
-        c >= '0' && c <= '9'
-    }
-
-    fn is_char(&self, c: char) -> bool {
-        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-    }
-
-    fn is_operator(&self, c: char) -> bool {
-        c == '>' || c == '<' || c == '=' || c == '!'
-    }
-
-    fn is_white_space(&self, c: char) -> bool {
-        c == ' ' || c == '\t' || c == '\r'
-    }
-
-    // Pretty much the same as I was doing before, happy
-    fn is_end(&self) -> bool {
-        &self.current >= &self.source.len()
-    }
-
-    fn is_char_end(&self, c: char) -> bool {
-        c == '\0'
-    }
-
-    // pub fn back(&mut self) {
-    //     self.estado = 0;
-    //     self.pos -= 1;
-    // }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let scanner = Scanner::new("var result = 1;").scan_tokens();
-
-        assert!(scanner.is_ok());
-    }
-
-    #[test]
-    fn error() {
-        let scanner = Scanner::new(r#"var "res"#).scan_tokens();
-
-        assert!(scanner.is_err());
-    }
-
-    #[test]
-    fn comments() {
-        let scanner = Scanner::new(r#"var = /* teste
-        tete */ "res""#).scan_tokens();
-
-        assert!(scanner.is_ok());
-    }
-}

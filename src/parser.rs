@@ -1,6 +1,4 @@
-use std::fmt::Binary;
-
-use crate::token::{Literal, Token};
+use crate::{exception, token::{Literal, Token}};
 
 // #[derive(Debug, Clone)]
 // pub struct Parser {
@@ -11,26 +9,93 @@ use crate::token::{Literal, Token};
 
 #[derive(Debug, Clone)]
 enum Expr {
-    Binary { operator: Token, left: Box<Expr>, right: Box<Expr>, },
-    Grouping { expression: Box<Expr>, },
-    Literal { value: Literal, },
-    Unary { operaton: Token, right: Box<Expr>, },
+    Binary {
+        operator: Token,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+    Grouping {
+        expression: Box<Expr>,
+    },
+    Literal {
+        value: Literal,
+    },
+    Unary {
+        operator: Token,
+        right: Box<Expr>,
+    },
 }
 
-type Exprs = Expr;
-
 impl Expr {
-    fn accept(&self) -> String {
-        match self {
-            Self::Binary { operator, left, right } => String::new(),
-            Self::Grouping { expression } => String::new(),
-            Self::Literal { value } => String::new(),
-            Self::Unary { operaton, right } => String::new(),
+    fn accept(&self, expr: &Expr) -> exception::Result<String> {
+        match expr {
+            Self::Binary {
+                operator,
+                left,
+                right,
+            } => self.parenthesize(&operator.lexeme, &[*left.clone(), *right.clone()]),
+            Self::Grouping { expression } => self.parenthesize("group", &[*expression.clone()]),
+            Self::Literal { value } => {
+                if value.eq(&Literal::None) {
+                    ()
+                }
+
+                Ok(value.to_string())
+            }
+            Self::Unary { operator, right } => self.parenthesize(&operator.lexeme, &[*right.clone()]),
         }
     }
 
-    fn print(&self) -> String {
-        self.accept()
+    pub fn print(&self) -> exception::Result<String> {
+        self.accept(self)
+    }
+
+    fn parenthesize(&self, name: &str, exprs: &[Expr]) -> exception::Result<String> {
+        let mut builder: String = String::new();
+
+        builder.push('(');
+        builder.push_str(name);
+
+        for expr in exprs {
+            builder.push(' ');
+            builder.push_str(&self.accept(expr).unwrap());
+        }
+
+        builder.push(')');
+
+        Ok(builder)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::token::TokenEnum;
+    use super::*;
+
+    #[test]
+    fn test_literal() {
+        let parser = Expr::print(&Expr::Literal { value: Literal::String("teste".to_string()) });
+
+        assert!(parser.is_ok());
+    }
+
+    #[test]
+    fn test_numbers() {
+        let expression = Expr::Binary {
+            operator: Token::new(TokenEnum::Star, "*".to_string(), Literal::None, 1),
+            left: Box::new(
+                Expr::Unary {
+                         operator: Token::new(TokenEnum::Minus, "-".to_string(), Literal::None, 1),
+                         right: Box::new(Expr::Literal { value: Literal::Number(123) })
+                    }),
+            right: Box::new(Expr::Grouping {
+                expression: Box::new(Expr::Literal { value: Literal::Number(123) })
+            })
+        };
+
+        let parser = Expr::print(&expression);
+        assert!(parser.is_ok());
+        assert_eq!(parser.unwrap(), "(* (- 123) (group 123))")
     }
 }
 

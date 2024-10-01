@@ -53,7 +53,7 @@ pub enum TokenEnum {
 #[derive(Debug, Clone)]
 pub struct Token {
     token_type: TokenEnum,
-    lexeme: String,
+    pub lexeme: String,
     literal: Literal,
     line: u32
 }
@@ -106,12 +106,17 @@ impl Default for Literal {
     }
 }
 
+impl ToString for Literal {
 
-// impl fmt::Display for Literal {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
+    fn to_string(&self) -> String {
+        match self {
+            Literal::None => String::new(),
+            Literal::Bool(value) => String::from(value.to_string()),
+            Literal::Number(value) => String::from(value.to_string()),
+            Literal::String(value) => String::from(value),
+        }
+    }
+}
 
 impl Token {
     pub fn new(token_type: TokenEnum, lexeme: String, literal: Literal, line: u32) -> Self {
