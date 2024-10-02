@@ -41,7 +41,7 @@ impl Scanner {
 
         Ok(self.tokens.push(Token::new(
             TokenEnum::EOF,
-            String::new(),
+            &String::new(),
             Default::default(),
             self.line,
         )))
@@ -133,7 +133,7 @@ impl Scanner {
     }
 
     fn add_token_base(&mut self, token_type: TokenEnum, literal: Literal) {
-        let text = String::from(&self.source[self.start..self.current]);
+        let text = &self.source[self.start..self.current];
 
         self.tokens
             .push(Token::new(token_type, text, literal, self.line))

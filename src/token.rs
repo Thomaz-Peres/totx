@@ -119,7 +119,8 @@ impl ToString for Literal {
 }
 
 impl Token {
-    pub fn new(token_type: TokenEnum, lexeme: String, literal: Literal, line: u32) -> Self {
+    pub fn new(token_type: TokenEnum, lexeme: &str, literal: Literal, line: u32) -> Self {
+        let lexeme = lexeme.to_string();
         Self {
             token_type,
             lexeme,
