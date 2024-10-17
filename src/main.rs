@@ -1,12 +1,12 @@
-mod parser;
+mod ast;
 mod scanner;
 mod token;
 mod exception;
+mod parser;
 
 use clap::Parser;
 use token::Token;
 use std::{ env, fs, path::PathBuf, process, result };
-
 
 // use parser::Parser;
 use scanner::Scanner;

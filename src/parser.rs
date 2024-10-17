@@ -1,207 +1,73 @@
-use crate::{exception, token::{Literal, Token}};
+use crate::{ast::Expr, exception, token::{Token, TokenEnum}};
 
-// #[derive(Debug, Clone)]
-// pub struct Parser {
-//     operator: Token,
-//     left:  Expr,
-//     right: Expr,
-// }
-
-#[derive(Debug, Clone)]
-enum Expr {
-    Binary {
-        operator: Token,
-        left: Box<Expr>,
-        right: Box<Expr>,
-    },
-    Grouping {
-        expression: Box<Expr>,
-    },
-    Literal {
-        value: Literal,
-    },
-    Unary {
-        operator: Token,
-        right: Box<Expr>,
-    },
+pub struct Parser<'a> {
+    tokens: &'a Vec<Token>,
+    current: usize
 }
 
-impl Expr {
-    pub fn accept(&self, expr: &Expr) -> exception::Result<String> {
-        match expr {
-            Self::Binary { operator, left, right, } => {
-                self.parenthesize(&operator.lexeme, &[*left.clone(), *right.clone()])
-            },
-            Self::Grouping { expression } => {
-                self.parenthesize("group", &[*expression.clone()])
-            },
-            Self::Literal { value } => {
-                if value.eq(&Literal::None) {
-                    ()
-                }
-
-                Ok(value.to_string())
-            }
-            Self::Unary { operator, right } => {
-                self.parenthesize(&operator.lexeme, &[*right.clone()])
-            },
+impl<'a> Parser<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Self {
+        Self {
+            tokens,
+            current: 0
         }
     }
 
-    pub fn print(&self) -> exception::Result<String> {
-        self.accept(self)
+    fn expression(&mut self) -> exception::Result<Expr> {
+        self.equality()
     }
 
-    fn parenthesize(&self, name: &str, exprs: &[Expr]) -> exception::Result<String> {
-        let mut builder: String = String::new();
+    fn equality(&mut self) -> exception::Result<Expr> {
+        let expr = self.comparison();
 
-        builder.push('(');
-        builder.push_str(name);
-
-        for expr in exprs {
-            builder.push(' ');
-            builder.push_str(&self.accept(expr).unwrap());
+        while self.matching(vec![TokenEnum::BangEqual, TokenEnum::EqualEqual]) {
+            let operator = self.previous();
+            let right = self.comparison();
+            expr = Expr::Binary { operator: operator.to_owned(), left: expr, right: right }
         }
 
-        builder.push(')');
-
-        Ok(builder)
+        Ok(expr)
     }
 
-    fn reverse_polish_notation(&self) -> exception::Result<String> {
-        let mut builder: String = String::new();
-        match self {
-            // For a binary operator (e.g., +, -, *, /)
-            Expr::Binary { operator, left, right } => {
-                let left_rpn = left.reverse_polish_notation();
-                let right_rpn = right.reverse_polish_notation();
-
-                builder.push_str(&format!("{} {} {}", left_rpn.unwrap(), right_rpn.unwrap(), operator.lexeme));
-                Ok(builder)
-            }
-            Expr::Grouping { expression } => {
-                expression.reverse_polish_notation()
-            }
-            Expr::Literal { value } => {
-                Ok(value.to_string())  // Convert the literal value to string
-            }
-            Expr::Unary { operator, right } => {
-                let right_rpn = right.reverse_polish_notation();
-                builder.push_str(&format!("{} {}", right_rpn.unwrap(), operator.lexeme));
-                Ok(builder)
+    // This consumes the token and returns true. Otherwise, it returns false and leaves the current token alone.
+    fn matching(&mut self, types: Vec<TokenEnum>) -> bool {
+        for token_type in types.into_iter() {
+            if self.check(token_type) {
+                self.advance();
+                return true;
             }
         }
+
+        false
+    }
+
+    fn check(&self, token_type: TokenEnum) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        self.peek().token_type == token_type
+    }
+
+    fn advance(&mut self) -> &Token {
+        if self.is_at_end() {
+            self.current += 1;
+        }
+
+        self.previous() // This looks wrong. problably use lifetimes here.
+    }
+
+    fn is_at_end(&self) -> bool {
+        return self.peek().token_type == TokenEnum::EOF;
+    }
+
+    // returns the current token we have yet to consume
+    fn peek(&self) -> &Token {
+        self.tokens.get(self.current - 1).unwrap() // Add unwrap or error, better than that
+    }
+
+    // Returns the most recently consumed token.
+    fn previous(&self) -> &Token {
+        self.tokens.get(self.current - 1).unwrap() // Add unwrap or erro  after
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::token::TokenEnum;
-    use super::*;
-
-    #[test]
-    fn test_literal() {
-        let parser = Expr::print(&Expr::Literal { value: Literal::String("teste".to_string()) });
-
-        assert!(parser.is_ok());
-    }
-
-    #[test]
-    fn test_numbers() {
-        let expression = Expr::Binary {
-            operator: Token::new(TokenEnum::Star, "*", Literal::None, 1),
-            left: Box::new(
-                Expr::Unary {
-                         operator: Token::new(TokenEnum::Minus, "-", Literal::None, 1),
-                         right: Box::new(Expr::Literal { value: Literal::Number(123) })
-                    }),
-            right: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Literal { value: Literal::Number(123) })
-            })
-        };
-
-        let parser = Expr::reverse_polish_notation(&expression);
-        assert!(parser.is_ok());
-        assert_eq!(parser.unwrap(), "(* (- 123) (group 123))")
-    }
-
-    #[test]
-    fn test_reverse_polish_notation() {
-        let expression: Expr = Expr::Binary {
-            operator: Token::new(TokenEnum::Star, "*", Literal::None, 1),
-            left: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Binary {
-                    operator: Token::new(TokenEnum::Plus, "+", Literal::None, 1),
-                    left: Box::new(Expr::Literal { value: Literal::Number(1) }),
-                    right: Box::new(Expr::Literal { value: Literal::Number(2) })
-                })
-            }),
-            right: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Binary {
-                    operator: Token::new(TokenEnum::Minus, "-", Literal::None, 1),
-                    left: Box::new(Expr::Literal { value: Literal::Number(4) }),
-                    right: Box::new(Expr::Literal { value: Literal::Number(3) })
-                })
-            })
-        };
-
-        let parser = Expr::reverse_polish_notation(&expression);
-        assert!(parser.is_ok());
-        assert_eq!(parser.unwrap(), "1 2 + 4 3 - *")
-    }
-}
-
-// use crate::{
-//     token::{Token, TokenEnum},
-//     Scanner,
-// };
-
-// pub struct Parser {
-//     scanner: Scanner,
-//     current_token: Token,
-// }
-
-// impl Parser {
-//     // O parser recebe o scanner (analisador lexico) como parametro pois a cada procedimento,
-//     // invoca-o sob demanda.
-//     pub fn new(scanner: &Scanner, current_token: &Token) -> Parser {
-//         Parser {
-//             scanner: scanner.clone(),
-//             current_token: current_token.clone()
-//         }
-//     }
-
-//     pub fn e(&self) {
-//         self.t();
-//         self.el();
-//     }
-
-//     pub fn el(&self) {
-//         if self.current_token.get_type() != &TokenEnum::Operator {
-//             self.op();
-//             self.t();
-//             self.el();
-//         }
-//     }
-
-//     pub fn t(&self) -> Result<(), &'static str> {
-//         let x = self.current_token.get_type();
-//         if (x == &TokenEnum::Identifier && x == &TokenEnum::Number)
-//         {
-//             Ok(())
-//         } else {
-//             Err("ID or Number expected")
-//         }
-//         // match  {
-//         //     TokenEnum::Identifier | TokenEnum::Number => Ok(()),
-//         //     _ => Err("ID or Number expected"),
-//         // }
-//     }
-
-//     pub fn op(&self) -> Result<(), &'static str> {
-//         match self.current_token.get_type() {
-//             TokenEnum::Operator => Ok(()),
-//             _ => Err("Operator expected"),
-//         }
-//     }
-// }
