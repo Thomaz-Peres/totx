@@ -54,7 +54,7 @@ pub enum TokenEnum {
 pub struct Token {
     pub token_type: TokenEnum,
     pub lexeme: String,
-    literal: Literal,
+    pub literal: Literal,
     line: u32
 }
 
