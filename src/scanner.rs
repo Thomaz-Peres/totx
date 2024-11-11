@@ -8,8 +8,8 @@ use crate::{
 use super::token::{Token, TokenEnum};
 
 #[derive(Debug, Clone)]
-pub struct Scanner {
-    source: String,
+pub struct Scanner<'a> {
+    source: &'a str,
     tokens: Vec<Token>,
     // The start field points to the first character in the lexeme being scanned,
     // and current points at the character currently being considered.
@@ -18,10 +18,10 @@ pub struct Scanner {
     line: u32,
 }
 
-impl Scanner {
-    pub fn new(source: &str) -> Self {
+impl<'a> Scanner<'a> {
+    pub fn new(source: &'a str) -> Self {
         Self {
-            source: source.to_owned(),
+            source: source,
             tokens: Vec::new(),
             start: 0,
             current: 0,
@@ -41,7 +41,7 @@ impl Scanner {
 
         Ok(self.tokens.push(Token::new(
             TokenEnum::EOF,
-            &String::new(),
+            "",
             Default::default(),
             self.line,
         )))
@@ -135,8 +135,7 @@ impl Scanner {
     fn add_token_base(&mut self, token_type: TokenEnum, literal: Literal) {
         let text = &self.source[self.start..self.current];
 
-        self.tokens
-            .push(Token::new(token_type, text, literal, self.line))
+        self.tokens.push(Token::new(token_type, text, literal, self.line))
     }
 
     fn match_char(&mut self, expected: char) -> bool {

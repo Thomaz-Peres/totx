@@ -5,8 +5,7 @@ mod exception;
 mod parser;
 
 use clap::Parser;
-use token::Token;
-use std::{ env, fs, path::PathBuf, process, result };
+use std::{ env, fs, path::PathBuf, process };
 
 // use parser::Parser;
 use scanner::Scanner;

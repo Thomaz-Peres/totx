@@ -8,26 +8,26 @@ use crate::{exception, token::{Literal, Token}};
 // }
 
 #[derive(Debug, Clone)]
-pub enum Expr {
+pub enum Expression {
     Binary {
         operator: Token,
-        left: Box<Expr>,
-        right: Box<Expr>,
+        left: Box<Expression>,
+        right: Box<Expression>,
     },
     Grouping {
-        expression: Box<Expr>,
+        expression: Box<Expression>,
     },
     Literal {
         value: Literal,
     },
     Unary {
         operator: Token,
-        right: Box<Expr>,
+        right: Box<Expression>,
     },
 }
 
-impl Expr {
-    pub fn accept(&self, expr: &Expr) -> exception::Result<String> {
+impl Expression {
+    pub fn accept(&self, expr: &Expression) -> exception::Result<String> {
         match expr {
             Self::Binary { operator, left, right, } => {
                 self.parenthesize(&operator.lexeme, &[*left.clone(), *right.clone()])
@@ -52,7 +52,7 @@ impl Expr {
         self.accept(self)
     }
 
-    fn parenthesize(&self, name: &str, exprs: &[Expr]) -> exception::Result<String> {
+    fn parenthesize(&self, name: &str, exprs: &[Expression]) -> exception::Result<String> {
         let mut builder: String = String::new();
 
         builder.push('(');
@@ -72,20 +72,20 @@ impl Expr {
         let mut builder: String = String::new();
         match self {
             // For a binary operator (e.g., +, -, *, /)
-            Expr::Binary { operator, left, right } => {
+            Expression::Binary { operator, left, right } => {
                 let left_rpn = left.reverse_polish_notation();
                 let right_rpn = right.reverse_polish_notation();
 
                 builder.push_str(&format!("{} {} {}", left_rpn.unwrap(), right_rpn.unwrap(), operator.lexeme));
                 Ok(builder)
             }
-            Expr::Grouping { expression } => {
+            Expression::Grouping { expression } => {
                 expression.reverse_polish_notation()
             }
-            Expr::Literal { value } => {
+            Expression::Literal { value } => {
                 Ok(value.to_string())
             }
-            Expr::Unary { operator, right } => {
+            Expression::Unary { operator, right } => {
                 let right_rpn = right.reverse_polish_notation();
                 builder.push_str(&format!("{} {}", right_rpn.unwrap(), operator.lexeme));
                 Ok(builder)
@@ -101,51 +101,51 @@ mod tests {
 
     #[test]
     fn test_literal() {
-        let parser = Expr::print(&Expr::Literal { value: Literal::String("teste".to_string()) });
+        let parser = Expression::print(&Expression::Literal { value: Literal::String("teste".to_string()) });
 
         assert!(parser.is_ok());
     }
 
     #[test]
     fn test_numbers() {
-        let expression = Expr::Binary {
+        let expression = Expression::Binary {
             operator: Token::new(TokenEnum::Star, "*", Literal::None, 1),
             left: Box::new(
-                Expr::Unary {
+                Expression::Unary {
                          operator: Token::new(TokenEnum::Minus, "-", Literal::None, 1),
-                         right: Box::new(Expr::Literal { value: Literal::Number(123) })
+                         right: Box::new(Expression::Literal { value: Literal::Number(123) })
                     }),
-            right: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Literal { value: Literal::Number(123) })
+            right: Box::new(Expression::Grouping {
+                expression: Box::new(Expression::Literal { value: Literal::Number(123) })
             })
         };
 
-        let parser = Expr::reverse_polish_notation(&expression);
+        let parser = Expression::print(&expression);
         assert!(parser.is_ok());
         assert_eq!(parser.unwrap(), "(* (- 123) (group 123))")
     }
 
     #[test]
     fn test_reverse_polish_notation() {
-        let expression: Expr = Expr::Binary {
+        let expression: Expression = Expression::Binary {
             operator: Token::new(TokenEnum::Star, "*", Literal::None, 1),
-            left: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Binary {
+            left: Box::new(Expression::Grouping {
+                expression: Box::new(Expression::Binary {
                     operator: Token::new(TokenEnum::Plus, "+", Literal::None, 1),
-                    left: Box::new(Expr::Literal { value: Literal::Number(1) }),
-                    right: Box::new(Expr::Literal { value: Literal::Number(2) })
+                    left: Box::new(Expression::Literal { value: Literal::Number(1) }),
+                    right: Box::new(Expression::Literal { value: Literal::Number(2) })
                 })
             }),
-            right: Box::new(Expr::Grouping {
-                expression: Box::new(Expr::Binary {
+            right: Box::new(Expression::Grouping {
+                expression: Box::new(Expression::Binary {
                     operator: Token::new(TokenEnum::Minus, "-", Literal::None, 1),
-                    left: Box::new(Expr::Literal { value: Literal::Number(4) }),
-                    right: Box::new(Expr::Literal { value: Literal::Number(3) })
+                    left: Box::new(Expression::Literal { value: Literal::Number(4) }),
+                    right: Box::new(Expression::Literal { value: Literal::Number(3) })
                 })
             })
         };
 
-        let parser = Expr::reverse_polish_notation(&expression);
+        let parser = Expression::reverse_polish_notation(&expression);
         assert!(parser.is_ok());
         assert_eq!(parser.unwrap(), "1 2 + 4 3 - *")
     }
