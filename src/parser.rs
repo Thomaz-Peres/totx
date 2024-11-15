@@ -1,10 +1,9 @@
 use crate::{
-    ast::Expression,
-    token::{Token, TokenEnum}
+    ast::Expression, exception, token::{Token, TokenEnum}
 };
 
 #[derive(Debug, Clone)]
-struct ParserError {
+pub struct ParserError {
     token: Token,
     message: String,
 }
@@ -24,11 +23,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expression(&mut self) -> Result<Expression> {
+    fn expression(&mut self) -> exception::Result<Expression> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Result<Expression> {
+    fn equality(&mut self) -> exception::Result<Expression> {
         let mut expr = self.comparison().unwrap();
 
         while self.matching(vec![TokenEnum::BangEqual, TokenEnum::EqualEqual]) {
@@ -44,7 +43,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn comparison(&mut self) -> Result<Expression> {
+    fn comparison(&mut self) -> exception::Result<Expression> {
         let mut expr = self.term().unwrap();
 
         while self.matching(vec![TokenEnum::Greater, TokenEnum::GreaterEqual, TokenEnum::Less, TokenEnum::LessEqual]) {
@@ -60,7 +59,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expression> {
+    fn term(&mut self) -> exception::Result<Expression> {
         let mut expr = self.factor().unwrap();
 
         while self.matching(vec![TokenEnum::Plus, TokenEnum::Minus]) {
@@ -76,7 +75,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expression> {
+    fn factor(&mut self) -> exception::Result<Expression> {
         let mut expr = self.unary().unwrap();
 
         while self.matching(vec![TokenEnum::Star, TokenEnum::Slash]) {
@@ -92,7 +91,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expression> {
+    fn unary(&mut self) -> exception::Result<Expression> {
         if self.matching(vec![TokenEnum::Bang, TokenEnum::Minus]) {
             let operator = self.previous();
             let right = self.unary().unwrap();
@@ -105,7 +104,7 @@ impl<'a> Parser<'a> {
         Ok(self.primary().unwrap())
     }
 
-    fn primary(&mut self) -> Result<Expression> {
+    fn primary(&mut self) -> exception::Result<Expression> {
         if self.matching(vec![TokenEnum::False]) {
             return Ok(Expression::Literal { value: crate::token::Literal::Bool(false) });
         }
@@ -174,15 +173,22 @@ impl<'a> Parser<'a> {
         self.tokens.get(self.current - 1).unwrap().clone() // Add unwrap or erro after
     }
 
-    // fn error() -> ParserError {
+    pub fn error(token: Token, message: &str) -> exception::Result<Token> {
+        if token.token_type == TokenEnum::EOF {
+            exception::Exception::error(token.line, " at end", message)
+        }
+        else {
+            let mut where_r = String::from(" at '");
+            where_r.push_str(token.lexeme.as_str());
+            exception::Exception::error(token.line, where_r.as_str(), message)
+        }
+    }
 
-    // }
-
-    fn consume(&self, token_type: TokenEnum, message: &str) -> Result<Token> {
-        if (self.check(token_type)) {
-            // return Ok(self.advance());
+    fn consume(&mut self, token_type: TokenEnum, message: &str) -> exception::Result<Token> {
+        if self.check(token_type) {
+            return Ok(self.advance());
         }
 
-        panic!();
+        Self::error(self.peek().clone(), message)
     }
 }

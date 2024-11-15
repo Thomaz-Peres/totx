@@ -55,7 +55,7 @@ pub struct Token {
     pub token_type: TokenEnum,
     pub lexeme: String,
     pub literal: Literal,
-    line: u32
+    pub line: u32
 }
 
 impl FromStr for TokenEnum {
