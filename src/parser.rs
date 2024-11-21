@@ -2,13 +2,13 @@ use crate::{
     ast::Expression, exception, token::{Token, TokenEnum}
 };
 
-#[derive(Debug, Clone)]
-pub struct ParserError {
-    token: Token,
-    message: String,
-}
+// #[derive(Debug, Clone)]
+// pub struct ParserError {
+//     token: Token,
+//     message: String,
+// }
 
-pub type Result<T> = std::result::Result<T, ParserError>;
+// pub type Result<T> = std::result::Result<T, ParserError>;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -105,30 +105,33 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> exception::Result<Expression> {
-        if self.matching(vec![TokenEnum::False]) {
-            return Ok(Expression::Literal { value: crate::token::Literal::Bool(false) });
+        match self.peek().token_type {
+            TokenEnum::True => {
+                self.advance();
+                return Ok(Expression::Literal { value: crate::token::Literal::Bool(true) });
+            },
+            TokenEnum::False => {
+                self.advance();
+                return Ok(Expression::Literal { value: crate::token::Literal::Bool(false) });
+            },
+            TokenEnum::Null => {
+                self.advance();
+                return Ok(Expression::Literal { value: crate::token::Literal::None });
+            },
+            TokenEnum::Number | TokenEnum::String => {
+                self.advance();
+                return Ok(Expression::Literal { value: self.previous().literal });
+            }
+            TokenEnum::LeftParen => {
+                let expr = self.expression().unwrap();
+                self.consume(TokenEnum::RightParen, "Except ')' after expression.");
+                return Ok(Expression::Grouping { expression: Box::new(expr) });
+            }
+            _ => {
+                return Self::error(self.peek().clone(), "not expected.");
+            }
         }
 
-        if self.matching(vec![TokenEnum::True]) {
-            return Ok(Expression::Literal { value: crate::token::Literal::Bool(true) });
-        }
-
-        if self.matching(vec![TokenEnum::Null]) {
-            return Ok(Expression::Literal { value: crate::token::Literal::None });
-        }
-
-        if self.matching(vec![TokenEnum::Number, TokenEnum::String]) {
-            return Ok(Expression::Literal { value: self.previous().literal });
-        }
-
-        return Ok(Expression::Literal { value: self.previous().literal });
-        // if self.matching(vec![TokenEnum::LeftParen]) {
-        //     let expr = self.expression().unwrap();
-        //     consume(TokenEnum::RightParen, "Except ')' after expression.");
-        //     return Ok(Expr::Grouping { expression: Box::new(expr) });
-        // }
-
-        // return Exception::error(120, "");
     }
 
     // This consumes the token and returns true. Otherwise, it returns false and leaves the current token alone.
@@ -173,7 +176,7 @@ impl<'a> Parser<'a> {
         self.tokens.get(self.current - 1).unwrap().clone() // Add unwrap or erro after
     }
 
-    pub fn error(token: Token, message: &str) -> exception::Result<Token> {
+    pub fn error<T>(token: Token, message: &str) -> exception::Result<T> {
         if token.token_type == TokenEnum::EOF {
             exception::Exception::error(token.line, " at end", message)
         }

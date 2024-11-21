@@ -51,7 +51,7 @@ impl<'a> Scanner<'a> {
         let c: Option<char> = self.advance();
 
         if c.is_none() {
-            return Exception::error(self.line, "");
+            return Exception::error(self.line, "", "");
         }
 
         let c = c.unwrap();
@@ -116,7 +116,7 @@ impl<'a> Scanner<'a> {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    return exception::Exception::error(self.line, "Unexpected character.");
+                    return exception::Exception::error(self.line, "", "Unexpected character.");
                 }
             }
         }
@@ -194,7 +194,7 @@ impl<'a> Scanner<'a> {
         }
 
         if self.is_end() {
-            return exception::Exception::error(self.line, "Unterminated string.");
+            return exception::Exception::error(self.line, "", "Unterminated string.");
         }
 
         self.advance();
