@@ -27,12 +27,8 @@ fn main() {
 
     let source = fs::read_to_string(&"input.isi").expect("Unable to read the file");
 
-    let scanner = Scanner::new(&source).scan_tokens();
-
-    // println!("{:?}", scanner);
-    // let tokens = scanner;
-
-    // else {
-    //     run_prompt();
-    // }
+    let mut scanner = Scanner::new(&source);
+    let token = scanner.scan_tokens().unwrap();
+    let parser = parser::Parser::new(token);
+    dbg!(parser);
 }

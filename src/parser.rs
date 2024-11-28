@@ -10,6 +10,7 @@ use crate::{
 
 // pub type Result<T> = std::result::Result<T, ParserError>;
 
+#[derive(Debug)]
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize
@@ -21,6 +22,10 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0
         }
+    }
+
+    pub fn parser(&mut self) -> exception::Result<Expression> {
+        self.expression()
     }
 
     fn expression(&mut self) -> exception::Result<Expression> {
@@ -128,7 +133,7 @@ impl<'a> Parser<'a> {
                 return Ok(Expression::Grouping { expression: Box::new(expr) });
             }
             _ => {
-                return Self::error(self.peek().clone(), "not expected.");
+                return Self::error(self.peek().clone(), "Expect expression.");
             }
         }
 
@@ -178,12 +183,35 @@ impl<'a> Parser<'a> {
 
     pub fn error<T>(token: Token, message: &str) -> exception::Result<T> {
         if token.token_type == TokenEnum::EOF {
-            exception::Exception::error(token.line, " at end", message)
+            exception::Exception::errorPanic(token.line, " at end", message)
         }
         else {
             let mut where_r = String::from(" at '");
             where_r.push_str(token.lexeme.as_str());
-            exception::Exception::error(token.line, where_r.as_str(), message)
+            exception::Exception::errorPanic(token.line, where_r.as_str(), message)
+        }
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().token_type == TokenEnum::SemiColon {
+                return ();
+            }
+
+            match self.peek().token_type {
+                TokenEnum::Class
+                | TokenEnum::Fun
+                | TokenEnum::Var
+                | TokenEnum::For
+                | TokenEnum::If
+                | TokenEnum::While
+                | TokenEnum::Print
+                | TokenEnum::Return => (),
+                _ => ()
+            }
+
+            self.advance();
         }
     }
 

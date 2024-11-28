@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    exception::{self, Exception},
+    exception::{self},
     token::Literal,
 };
 
@@ -29,29 +29,27 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> exception::Result<()> {
+    pub fn scan_tokens(&mut self) -> exception::Result<&Vec<Token>> {
         while !self.is_end() {
             self.start = self.current;
-
-            match self.scan_token() {
-                Ok(()) => (),
-                Err(e) => return Err(e),
-            }
+            self.scan_token();
         }
 
-        Ok(self.tokens.push(Token::new(
+        self.tokens.push(Token::new(
             TokenEnum::EOF,
             "",
             Default::default(),
             self.line,
-        )))
+        ));
+
+        Ok(&self.tokens)
     }
 
-    fn scan_token(&mut self) -> exception::Result<()> {
+    fn scan_token(&mut self) {
         let c: Option<char> = self.advance();
 
         if c.is_none() {
-            return Exception::error(self.line, "", "");
+            return;
         }
 
         let c = c.unwrap();
@@ -100,13 +98,13 @@ impl<'a> Scanner<'a> {
                 };
                 self.add_token(token_type);
             }
-            '/' => self.comments()?,
+            '/' => self.comments(),
 
             '\n' => self.line += 1,
 
             ' ' | '\r' | '\t' => (),
 
-            '"' => self.string()?,
+            '"' => self.string(),
 
             __ => {
                 // let char = self.peek().unwrap();
@@ -116,11 +114,10 @@ impl<'a> Scanner<'a> {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    return exception::Exception::error(self.line, "", "Unexpected character.");
+                    exception::Exception::error(self.line, "", "Unexpected character.");
                 }
             }
         }
-        Ok(())
     }
 
     fn advance(&mut self) -> Option<char> {
@@ -152,7 +149,7 @@ impl<'a> Scanner<'a> {
         true
     }
 
-    fn comments(&mut self) -> exception::Result<()> {
+    fn comments(&mut self) {
         if self.match_char('/') {
             // A comment goes until the end of the line
             while self.peek().unwrap() != '\n' && !self.is_end() {
@@ -169,8 +166,6 @@ impl<'a> Scanner<'a> {
         } else {
             self.add_token(TokenEnum::Slash);
         }
-
-        Ok(())
     }
 
     fn get_char(&self, index: usize) -> Option<char> {
@@ -185,7 +180,7 @@ impl<'a> Scanner<'a> {
         self.get_char(self.current)
     }
 
-    fn string(&mut self) -> exception::Result<()> {
+    fn string(&mut self) {
         while self.peek().unwrap() != '"' && !self.is_end() {
             if self.peek().unwrap() == '\n' {
                 self.line += 1;
@@ -194,15 +189,14 @@ impl<'a> Scanner<'a> {
         }
 
         if self.is_end() {
-            return exception::Exception::error(self.line, "", "Unterminated string.");
+            exception::Exception::error(self.line, "", "Unterminated string.");
+            return;
         }
 
         self.advance();
 
         let value = self.source[self.start + 1..self.current - 1].to_string();
         self.add_token_base(TokenEnum::String, Literal::String(value));
-
-        Ok(())
     }
 
     fn number(&mut self) {
@@ -290,25 +284,27 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let scanner = Scanner::new("var result = 1;").scan_tokens();
+        let mut binding = Scanner::new("var result = 1;");
+        let scanner = binding.scan_tokens();
 
         assert!(scanner.is_ok());
     }
 
     #[test]
     fn error() {
-        let scanner = Scanner::new(r#"var "res"#).scan_tokens();
+        let mut binding = Scanner::new(r#"var "res"#);
+        let scanner = binding.scan_tokens();
 
         assert!(scanner.is_err());
     }
 
     #[test]
     fn comments() {
-        let scanner = Scanner::new(
+        let mut binding = Scanner::new(
             r#"var = /* teste
         tete */ "res""#,
-        )
-        .scan_tokens();
+        );
+        let scanner = binding.scan_tokens();
 
         assert!(scanner.is_ok());
     }
