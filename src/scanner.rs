@@ -2,10 +2,8 @@ use std::str::FromStr;
 
 use crate::{
     exception::{self},
-    token::Literal,
+    token::{Literal, Token, TokenEnum},
 };
-
-use super::token::{Token, TokenEnum};
 
 #[derive(Debug, Clone)]
 pub struct Scanner<'a> {
@@ -132,7 +130,8 @@ impl<'a> Scanner<'a> {
     fn add_token_base(&mut self, token_type: TokenEnum, literal: Literal) {
         let text = &self.source[self.start..self.current];
 
-        self.tokens.push(Token::new(token_type, text, literal, self.line))
+        self.tokens
+            .push(Token::new(token_type, text, literal, self.line))
     }
 
     fn match_char(&mut self, expected: char) -> bool {
@@ -251,26 +250,26 @@ impl<'a> Scanner<'a> {
         c >= '0' && c <= '9'
     }
 
-    fn is_char(&self, c: char) -> bool {
-        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-    }
-
-    fn is_operator(&self, c: char) -> bool {
-        c == '>' || c == '<' || c == '=' || c == '!'
-    }
-
-    fn is_white_space(&self, c: char) -> bool {
-        c == ' ' || c == '\t' || c == '\r'
-    }
-
     // Pretty much the same as I was doing before, happy
     fn is_end(&self) -> bool {
         &self.current >= &self.source.len()
     }
 
-    fn is_char_end(&self, c: char) -> bool {
-        c == '\0'
-    }
+    // fn is_char(&self, c: char) -> bool {
+    //     (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+    // }
+
+    // fn is_operator(&self, c: char) -> bool {
+    //     c == '>' || c == '<' || c == '=' || c == '!'
+    // }
+
+    // fn is_white_space(&self, c: char) -> bool {
+    //     c == ' ' || c == '\t' || c == '\r'
+    // }
+
+    // fn is_char_end(&self, c: char) -> bool {
+    //     c == '\0'
+    // }
 
     // pub fn back(&mut self) {
     //     self.estado = 0;
@@ -310,76 +309,75 @@ mod tests {
     }
 }
 
+// pub fn next_token(&mut self) -> Result<Token, &'static str> {
+//     if self.is_end() {
+//         return Err("Token not found");
+//     }
 
-    // pub fn next_token(&mut self) -> Result<Token, &'static str> {
-    //     if self.is_end() {
-    //         return Err("Token not found");
-    //     }
+//     // let token;
+//     let mut term = String::from("");
 
-    //     // let token;
-    //     let mut term = String::from("");
-
-    //     loop {
-    //         let current_char: char = self.next_char();
-    //         self.pos += 1;
-    //         match self.estado {
-    //             0 => {
-    //                 if self.is_char(current_char) {
-    //                     term.push(current_char);
-    //                     self.estado = 1;
-    //                 } else if self.is_digit(current_char) {
-    //                     term.push(current_char);
-    //                     self.estado = 3;
-    //                 } else if self.is_space(current_char) {
-    //                     self.estado = 0;
-    //                 } else if self.is_operator(current_char) {
-    //                     self.estado = 5;
-    //                 } else {
-    //                     continue;
-    //                     // return Err("Token state not found");
-    //                 }
-    //             }
-    //             1 => {
-    //                 if self.is_char(current_char) || self.is_digit(current_char) || self.is_char_end(current_char) {
-    //                     term.push(current_char);
-    //                     self.estado = 1;
-    //                 } else if self.is_space(current_char) || self.is_operator(current_char) {
-    //                     self.estado = 2;
-    //                 } else {
-    //                     continue;
-    //                     // return Err("Token state not found");
-    //                 }
-    //             }
-    //             2 => {
-    //                 self.back();
-    //                 let token = Token::new_token(TokenEnum::Identifier, term);
-    //                 return Ok(token);
-    //             }
-    //             3 => {
-    //                 if self.is_digit(current_char) {
-    //                     term.push(current_char);
-    //                     self.estado = 3;
-    //                 } else if !self.is_char(current_char) {
-    //                     self.estado = 4;
-    //                 } else {
-    //                     continue;
-    //                     // return Err("Token state not found");
-    //                 }
-    //             }
-    //             4 => {
-    //                 self.back();
-    //                 let token = Token::new_token(TokenEnum::Number, term);
-    //                 return Ok(token);
-    //             }
-    //             5 => {
-    //                 term.push(current_char);
-    //                 let token = Token::new_token(TokenEnum::Operator, term);
-    //                 return Ok(token);
-    //             }
-    //             _ => {
-    //                 continue;
-    //                 // return Err("Token state not found");
-    //             }
-    //         }
-    //     }
-    // }
+//     loop {
+//         let current_char: char = self.next_char();
+//         self.pos += 1;
+//         match self.estado {
+//             0 => {
+//                 if self.is_char(current_char) {
+//                     term.push(current_char);
+//                     self.estado = 1;
+//                 } else if self.is_digit(current_char) {
+//                     term.push(current_char);
+//                     self.estado = 3;
+//                 } else if self.is_space(current_char) {
+//                     self.estado = 0;
+//                 } else if self.is_operator(current_char) {
+//                     self.estado = 5;
+//                 } else {
+//                     continue;
+//                     // return Err("Token state not found");
+//                 }
+//             }
+//             1 => {
+//                 if self.is_char(current_char) || self.is_digit(current_char) || self.is_char_end(current_char) {
+//                     term.push(current_char);
+//                     self.estado = 1;
+//                 } else if self.is_space(current_char) || self.is_operator(current_char) {
+//                     self.estado = 2;
+//                 } else {
+//                     continue;
+//                     // return Err("Token state not found");
+//                 }
+//             }
+//             2 => {
+//                 self.back();
+//                 let token = Token::new_token(TokenEnum::Identifier, term);
+//                 return Ok(token);
+//             }
+//             3 => {
+//                 if self.is_digit(current_char) {
+//                     term.push(current_char);
+//                     self.estado = 3;
+//                 } else if !self.is_char(current_char) {
+//                     self.estado = 4;
+//                 } else {
+//                     continue;
+//                     // return Err("Token state not found");
+//                 }
+//             }
+//             4 => {
+//                 self.back();
+//                 let token = Token::new_token(TokenEnum::Number, term);
+//                 return Ok(token);
+//             }
+//             5 => {
+//                 term.push(current_char);
+//                 let token = Token::new_token(TokenEnum::Operator, term);
+//                 return Ok(token);
+//             }
+//             _ => {
+//                 continue;
+//                 // return Err("Token state not found");
+//             }
+//         }
+//     }
+// }

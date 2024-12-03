@@ -10,7 +10,7 @@
             "name": "launch",
             "cargo": {
                 "args": [
-                    "run - input.isi",
+                    "run",
                 ]
             },
             "args": []

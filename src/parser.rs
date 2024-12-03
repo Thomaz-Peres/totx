@@ -1,3 +1,20 @@
+// Name	        Operators	Associates
+// Equality	     == !=	    Left
+// Comparison	> >= < <=	Left
+// Term	          - +	    Left
+// Factor	        / *	    Left
+// Unary	      ! -	    Right
+
+// Adding Comma operator precedence
+
+// Name	           Operators	Associates
+// Comma Op.	      ,    	    Left
+// Equality	        == !=	    Left
+// Comparison	  > >= < <=	    Left
+// Term	             - +	    Left
+// Factor	         / *	    Left
+// Unary	         ! -	    Right
+
 use crate::{
     ast::Expression, exception, token::{Token, TokenEnum}
 };
@@ -20,7 +37,7 @@ impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Self {
         Self {
             tokens,
-            current: 0
+            current: 1
         }
     }
 
@@ -32,12 +49,24 @@ impl<'a> Parser<'a> {
         self.equality()
     }
 
+    fn comma(&mut self) -> exception::Result<Expression> {
+        let mut expr = self.comparison()?;
+
+        while self.matching(vec![TokenEnum::Comma]) {
+            let operator = self.previous();
+            let right = self.term()?;
+            expr = Expression::Binary { operator: operator, left: Box::new(expr), right: Box::new(right) }
+        }
+
+        Ok(expr)
+    }
+
     fn equality(&mut self) -> exception::Result<Expression> {
-        let mut expr = self.comparison().unwrap();
+        let mut expr = self.comparison()?;
 
         while self.matching(vec![TokenEnum::BangEqual, TokenEnum::EqualEqual]) {
             let operator = self.previous();
-            let right = self.comparison().unwrap();
+            let right = self.comparison()?;
             expr = Expression::Binary {
                 operator: operator,
                 left: Box::new(expr),
@@ -49,11 +78,11 @@ impl<'a> Parser<'a> {
     }
 
     fn comparison(&mut self) -> exception::Result<Expression> {
-        let mut expr = self.term().unwrap();
+        let mut expr = self.term()?;
 
         while self.matching(vec![TokenEnum::Greater, TokenEnum::GreaterEqual, TokenEnum::Less, TokenEnum::LessEqual]) {
             let operator = self.previous();
-            let right = self.term().unwrap();
+            let right = self.term()?;
             expr = Expression::Binary {
                 operator: operator,
                 left: Box::new(expr),
@@ -65,11 +94,11 @@ impl<'a> Parser<'a> {
     }
 
     fn term(&mut self) -> exception::Result<Expression> {
-        let mut expr = self.factor().unwrap();
+        let mut expr = self.factor()?;
 
         while self.matching(vec![TokenEnum::Plus, TokenEnum::Minus]) {
             let operator = self.previous();
-            let right = self.factor().unwrap();
+            let right = self.factor()?;
             expr = Expression::Binary {
                 operator: operator,
                 left: Box::new(expr),
@@ -81,11 +110,11 @@ impl<'a> Parser<'a> {
     }
 
     fn factor(&mut self) -> exception::Result<Expression> {
-        let mut expr = self.unary().unwrap();
+        let mut expr = self.unary()?;
 
         while self.matching(vec![TokenEnum::Star, TokenEnum::Slash]) {
             let operator = self.previous();
-            let right = self.unary().unwrap();
+            let right = self.unary()?;
             expr = Expression::Binary {
                 operator: operator,
                 left: Box::new(expr),
@@ -99,14 +128,15 @@ impl<'a> Parser<'a> {
     fn unary(&mut self) -> exception::Result<Expression> {
         if self.matching(vec![TokenEnum::Bang, TokenEnum::Minus]) {
             let operator = self.previous();
-            let right = self.unary().unwrap();
+            let right = self.unary()?;
             return Ok(Expression::Unary {
                 operator: operator,
                 right: Box::new(right),
             });
         }
 
-        Ok(self.primary().unwrap())
+        let x = self.primary()?;
+        Ok(x)
     }
 
     fn primary(&mut self) -> exception::Result<Expression> {
@@ -128,8 +158,8 @@ impl<'a> Parser<'a> {
                 return Ok(Expression::Literal { value: self.previous().literal });
             }
             TokenEnum::LeftParen => {
-                let expr = self.expression().unwrap();
-                self.consume(TokenEnum::RightParen, "Except ')' after expression.");
+                let expr = self.expression()?;
+                self.consume(TokenEnum::RightParen, "Except ')' after expression.")?;
                 return Ok(Expression::Grouping { expression: Box::new(expr) });
             }
             _ => {
@@ -173,23 +203,25 @@ impl<'a> Parser<'a> {
 
     // returns the current token we have yet to consume
     fn peek(&self) -> &Token {
-        self.tokens.get(self.current - 1).unwrap() // Add unwrap or error, better than that
+        &self.tokens[self.current] // Add unwrap or error, better than that
     }
 
     // Returns the most recently consumed token.
     fn previous(&self) -> Token {
-        self.tokens.get(self.current - 1).unwrap().clone() // Add unwrap or erro after
+        self.tokens[self.current].clone() // Add unwrap or erro after
     }
 
-    pub fn error<T>(token: Token, message: &str) -> exception::Result<T> {
+    fn error<T>(token: Token, message: &str) -> exception::Result<T> {
         if token.token_type == TokenEnum::EOF {
-            exception::Exception::errorPanic(token.line, " at end", message)
+            exception::Exception::error(token.line, " at end", message);
         }
         else {
             let mut where_r = String::from(" at '");
             where_r.push_str(token.lexeme.as_str());
-            exception::Exception::errorPanic(token.line, where_r.as_str(), message)
+            exception::Exception::error(token.line, where_r.as_str(), message);
         }
+
+        Err(exception::Exception::new(token.line, "", message))
     }
 
     fn synchronize(&mut self) {

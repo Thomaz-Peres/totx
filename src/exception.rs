@@ -16,7 +16,7 @@ impl fmt::Display for Exception {
 }
 
 impl Exception {
-    fn new(line: u32, where_r: &str, message: &str) -> Self {
+    pub fn new(line: u32, where_r: &str, message: &str) -> Self {
         Self {
             line: line,
             message: message.to_string(),
@@ -28,7 +28,7 @@ impl Exception {
         Exception::new(line, where_r, message);
     }
 
-    pub fn errorPanic<T>(line: u32, where_r: &str, message: &str) -> Result<T> {
-        panic!("[Line - {} ] \n Error {} + : {}", line, where_r, message);
-    }
+    // pub fn error_panic<T>(line: u32, where_r: &str, message: &str) -> Result<T> {
+    //     panic!("[Line - {} ] \n Error {} + : {}", line, where_r, message);
+    // }
 }

@@ -7,7 +7,6 @@ mod parser;
 use clap::Parser;
 use std::{ env, fs, path::PathBuf, process };
 
-// use parser::Parser;
 use scanner::Scanner;
 
 
@@ -29,6 +28,7 @@ fn main() {
 
     let mut scanner = Scanner::new(&source);
     let token = scanner.scan_tokens().unwrap();
-    let parser = parser::Parser::new(token);
-    dbg!(parser);
+    let mut parser = parser::Parser::new(token);
+    let parse = parser.parser();
+    dbg!(parse);
 }
