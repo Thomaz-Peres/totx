@@ -28,16 +28,16 @@ use crate::{
 // pub type Result<T> = std::result::Result<T, ParserError>;
 
 #[derive(Debug)]
-pub struct Parser<'a> {
-    tokens: &'a Vec<Token>,
+pub struct Parser {
+    tokens: Vec<Token>,
     current: usize
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Vec<Token>) -> Self {
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Self {
             tokens,
-            current: 1
+            current: 0
         }
     }
 
@@ -46,15 +46,15 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> exception::Result<Expression> {
-        self.equality()
+        self.comma()
     }
 
     fn comma(&mut self) -> exception::Result<Expression> {
-        let mut expr = self.comparison()?;
+        let mut expr = self.equality()?;
 
         while self.matching(vec![TokenEnum::Comma]) {
             let operator = self.previous();
-            let right = self.term()?;
+            let right = self.equality()?;
             expr = Expression::Binary { operator: operator, left: Box::new(expr), right: Box::new(right) }
         }
 
@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
         for token_type in types.into_iter() {
             if self.check(token_type) {
                 self.advance();
-                return true;
+                return true
             }
         }
 
@@ -190,7 +190,7 @@ impl<'a> Parser<'a> {
     }
 
     fn advance(&mut self) -> Token {
-        if self.is_at_end() {
+        if !self.is_at_end() {
             self.current += 1;
         }
 
@@ -202,13 +202,13 @@ impl<'a> Parser<'a> {
     }
 
     // returns the current token we have yet to consume
-    fn peek(&self) -> &Token {
-        &self.tokens[self.current] // Add unwrap or error, better than that
+    fn peek(&self) -> Token {
+        self.tokens.get(self.current).unwrap().clone() // Problably adding a lifetime in Token<'a> ?
     }
 
     // Returns the most recently consumed token.
     fn previous(&self) -> Token {
-        self.tokens[self.current].clone() // Add unwrap or erro after
+        self.tokens.get(self.current - 1).unwrap().clone() // Problably adding a lifetime in Token<'a> ?
     }
 
     fn error<T>(token: Token, message: &str) -> exception::Result<T> {
@@ -253,5 +253,32 @@ impl<'a> Parser<'a> {
         }
 
         Self::error(self.peek().clone(), message)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{scanner::Scanner, token::Literal};
+
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let mut scan = Scanner::new("1 + 2 + 3 / 10;");
+        let tokens = scan.scan_tokens().unwrap();
+        let mut binding = Parser::new(tokens);
+        let parser = binding.parser();
+
+        assert!(parser.is_ok());
+    }
+
+    #[test]
+    fn should_fail() {
+        let mut scan = Scanner::new("var abc = 1 + 2;");
+        let tokens = scan.scan_tokens().unwrap();
+        let mut binding = Parser::new(tokens);
+        let parser = binding.parser();
+
+        assert!(parser.is_err());
     }
 }

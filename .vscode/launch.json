@@ -7,13 +7,10 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "launch",
-            "cargo": {
-                "args": [
-                    "run",
-                ]
-            },
-            "args": []
+            "name": "Launch",
+            "program": "${workspaceFolder}/target/debug/lexycal_analyser",
+            "args": [],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

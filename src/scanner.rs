@@ -27,7 +27,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> exception::Result<&Vec<Token>> {
+    pub fn scan_tokens(&mut self) -> exception::Result<Vec<Token>> {
         while !self.is_end() {
             self.start = self.current;
             self.scan_token();
@@ -40,7 +40,7 @@ impl<'a> Scanner<'a> {
             self.line,
         ));
 
-        Ok(&self.tokens)
+        Ok(self.tokens.clone())
     }
 
     fn scan_token(&mut self) {
@@ -255,21 +255,21 @@ impl<'a> Scanner<'a> {
         &self.current >= &self.source.len()
     }
 
-    // fn is_char(&self, c: char) -> bool {
-    //     (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-    // }
+    fn is_char(&self, c: char) -> bool {
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+    }
 
-    // fn is_operator(&self, c: char) -> bool {
-    //     c == '>' || c == '<' || c == '=' || c == '!'
-    // }
+    fn is_operator(&self, c: char) -> bool {
+        c == '>' || c == '<' || c == '=' || c == '!'
+    }
 
-    // fn is_white_space(&self, c: char) -> bool {
-    //     c == ' ' || c == '\t' || c == '\r'
-    // }
+    fn is_white_space(&self, c: char) -> bool {
+        c == ' ' || c == '\t' || c == '\r'
+    }
 
-    // fn is_char_end(&self, c: char) -> bool {
-    //     c == '\0'
-    // }
+    fn is_char_end(&self, c: char) -> bool {
+        c == '\0'
+    }
 
     // pub fn back(&mut self) {
     //     self.estado = 0;
