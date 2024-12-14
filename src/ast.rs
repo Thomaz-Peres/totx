@@ -1,12 +1,5 @@
 use crate::{exception, token::{Literal, Token}};
 
-// #[derive(Debug, Clone)]
-// pub struct Parser {
-//     operator: Token,
-//     left:  Expr,
-//     right: Expr,
-// }
-
 #[derive(Debug, Clone)]
 pub enum Expression {
     Binary {
@@ -30,10 +23,10 @@ impl Expression {
     pub fn accept(&self, expr: &Expression) -> exception::Result<String> {
         match expr {
             Self::Binary { operator, left, right, } => {
-                self.parenthesize(&operator.lexeme, &[*left.clone(), *right.clone()])
+                self.parenthesize(&operator.lexeme, vec![*left.clone(), *right.clone()])
             },
             Self::Grouping { expression } => {
-                self.parenthesize("group", &[*expression.clone()])
+                self.parenthesize("group", vec![*expression.clone()])
             },
             Self::Literal { value } => {
                 if value.eq(&Literal::None) {
@@ -43,7 +36,7 @@ impl Expression {
                 Ok(value.to_string())
             }
             Self::Unary { operator, right } => {
-                self.parenthesize(&operator.lexeme, &[*right.clone()])
+                self.parenthesize(&operator.lexeme, vec![*right.clone()])
             },
         }
     }
@@ -52,7 +45,7 @@ impl Expression {
         self.accept(self)
     }
 
-    fn parenthesize(&self, name: &str, exprs: &[Expression]) -> exception::Result<String> {
+    fn parenthesize(&self, name: &str, exprs: Vec<Expression>) -> exception::Result<String> {
         let mut builder: String = String::new();
 
         builder.push('(');
@@ -60,7 +53,7 @@ impl Expression {
 
         for expr in exprs {
             builder.push(' ');
-            builder.push_str(&self.accept(expr).unwrap());
+            builder.push_str(&self.accept(&expr).unwrap());
         }
 
         builder.push(')');
