@@ -24,8 +24,8 @@ impl Exception {
         }
     }
 
-    pub fn error(line: u32, where_r: &str, message: &str) {
-        Exception::new(line, where_r, message);
+    pub fn error<T>(line: u32, where_r: &str, message: &str) -> Result<T> {
+        Err(Exception::new(line, where_r, message))
     }
 
     // pub fn error_panic<T>(line: u32, where_r: &str, message: &str) -> Result<T> {

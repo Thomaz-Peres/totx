@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Launch",
-            "program": "${workspaceFolder}/target/debug/lexycal_analyser",
+            "program": "${workspaceFolder}/target/debug/totx",
             "args": [],
             "cwd": "${workspaceFolder}"
         }

@@ -112,7 +112,7 @@ impl<'a> Scanner<'a> {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    exception::Exception::error(self.line, "", "Unexpected character.");
+                    exception::Exception::new(self.line, "", "Unexpected character.");
                 }
             }
         }
@@ -188,7 +188,7 @@ impl<'a> Scanner<'a> {
         }
 
         if self.is_end() {
-            exception::Exception::error(self.line, "", "Unterminated string.");
+            exception::Exception::new(self.line, "", "Unterminated string.");
             return;
         }
 

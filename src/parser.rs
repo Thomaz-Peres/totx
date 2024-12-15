@@ -135,8 +135,7 @@ impl Parser {
             });
         }
 
-        let x = self.primary()?;
-        Ok(x)
+        Ok(self.primary()?)
     }
 
     fn primary(&mut self) -> exception::Result<Expression> {
@@ -158,6 +157,7 @@ impl Parser {
                 return Ok(Expression::Literal { value: self.previous().literal });
             }
             TokenEnum::LeftParen => {
+                self.advance();
                 let expr = self.expression()?;
                 self.consume(TokenEnum::RightParen, "Except ')' after expression.")?;
                 return Ok(Expression::Grouping { expression: Box::new(expr) });
@@ -213,15 +213,13 @@ impl Parser {
 
     fn error<T>(token: Token, message: &str) -> exception::Result<T> {
         if token.token_type == TokenEnum::EOF {
-            exception::Exception::error(token.line, " at end", message);
+            return exception::Exception::error(token.line, " at end", message);
         }
         else {
             let mut where_r = String::from(" at '");
             where_r.push_str(token.lexeme.as_str());
-            exception::Exception::error(token.line, where_r.as_str(), message);
+            return exception::Exception::error(token.line, where_r.as_str(), message);
         }
-
-        Err(exception::Exception::new(token.line, "", message))
     }
 
     fn synchronize(&mut self) {
@@ -258,7 +256,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::{scanner::Scanner, token::Literal};
+    use crate::{scanner::Scanner};
 
     use super::*;
 
@@ -280,5 +278,25 @@ mod tests {
         let parser = binding.parser();
 
         assert!(parser.is_err());
+    }
+
+    #[test]
+    fn n_a_n_numbers() {
+        let mut scan = Scanner::new("0 / 0");
+        let tokens = scan.scan_tokens().unwrap();
+        let mut binding = Parser::new(tokens);
+        let parser = binding.parser();
+
+        assert!(parser.is_ok());
+    }
+
+    #[test]
+    fn expressions() {
+        let mut scan = Scanner::new("(10 + 2) / 2");
+        let tokens = scan.scan_tokens().unwrap();
+        let mut binding = Parser::new(tokens);
+        let parser = binding.parser();
+
+        assert!(parser.is_ok());
     }
 }
