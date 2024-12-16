@@ -3,8 +3,10 @@ mod scanner;
 mod token;
 mod exception;
 mod parser;
+mod interpreter;
 
 use clap::Parser;
+use interpreter::Interpreter;
 use std::{ env, fs, path::PathBuf, process };
 
 use scanner::Scanner;
@@ -30,6 +32,8 @@ fn main() {
     let tokens = scanner.scan_tokens().unwrap();
     let mut parser = parser::Parser::new(tokens);
     let parse = parser.parser();
-    let ast = ast::Expression::print(&parse.unwrap());
-    println!("{:?}", ast)
+    let interpreter = Interpreter.evaluate(&parse.unwrap()).unwrap();
+    println!("{:?}", interpreter);
+    // let ast = ast::Expression::print(&parse.unwrap());
+    // println!("{:?}", ast);
 }
