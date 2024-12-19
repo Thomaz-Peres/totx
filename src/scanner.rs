@@ -65,7 +65,7 @@ impl<'a> Scanner<'a> {
             '*' => self.add_token(TokenEnum::Star),
 
             '!' => {
-                let token_type = if self.match_char('+') {
+                let token_type = if self.match_char('=') {
                     TokenEnum::BangEqual
                 } else {
                     TokenEnum::Bang
