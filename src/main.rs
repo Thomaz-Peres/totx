@@ -26,14 +26,12 @@ fn main() {
         process::exit(64);
     }
 
-    let source = fs::read_to_string(&"input.isi").expect("Unable to read the file");
+    let source = fs::read_to_string(&"input.tx").expect("Unable to read the file");
 
     let mut scanner = Scanner::new(&source);
     let tokens = scanner.scan_tokens().unwrap();
     let mut parser = parser::Parser::new(tokens);
     let parse = parser.parser();
-    let interpreter = Interpreter.evaluate(&parse.unwrap()).unwrap();
+    let interpreter = Interpreter.interpret(&parse.unwrap()).unwrap();
     println!("{:?}", interpreter);
-    // let ast = ast::Expression::print(&parse.unwrap());
-    // println!("{:?}", ast);
 }

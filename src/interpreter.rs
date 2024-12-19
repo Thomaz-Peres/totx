@@ -7,15 +7,20 @@ pub struct Interpreter;
 type EvaluateResult<T> = exception::Result<T>;
 
 impl Interpreter {
+    pub fn interpret(&self, expr: &Expression) -> EvaluateResult<Literal> {
+        // TODO: Improve that with error
+        self.evaluate(expr)
+    }
+
     // We eargely produced the runtime value way back during scanning and stuffed it in the token. The parser took that value and stuck it in the literal tree node, so to evaluate a literal, we simply pull it back out.
-    pub fn evaluate(&self, expr: &Expression) -> EvaluateResult<Literal> {
+    fn evaluate(&self, expr: &Expression) -> EvaluateResult<Literal> {
         let result = match expr {
             Expression::Literal { value } => value.clone(),
             Expression::Grouping { expression } => self.evaluate(expression)?,
             Expression::Unary { operator, right } => match operator.token_type {
                 TokenEnum::Minus => Literal::Number(check_number(self.evaluate(right)?)?),
                 TokenEnum::Bang => Literal::Bool(!is_truthy(self.evaluate(right)?)),
-                _ => return Exception::error(17, "Interpreter.rs", "message")
+                _ => return Exception::error(operator.line, "Interpreter.rs", "message")
             },
             Expression::Binary {
                 operator,
@@ -32,7 +37,7 @@ impl Interpreter {
                         match (left, right) {
                             (Literal::Number(left), Literal::Number(right)) => Literal::Number(left + right),
                             (Literal::String(left), Literal::String(right)) => Literal::String(left + &right),
-                            _ => return Exception::error(1, "Interpreter.rs", "Must be all string or number for PLUS (+)")
+                            _ => return Exception::error(operator.line, "Interpreter.rs", "Must be all string or number for PLUS (+)")
                         }
                     },
                     TokenEnum::Greater => Literal::Bool(check_number(left)? > check_number(right)?),
@@ -41,10 +46,10 @@ impl Interpreter {
                     TokenEnum::LessEqual => Literal::Bool(check_number(left)? <= check_number(right)?),
                     TokenEnum::BangEqual => Literal::Bool(!(left == right)),
                     TokenEnum::EqualEqual => Literal::Bool(left == right),
-                    _ => return Exception::error(19, "Interpreter.rs", "message")
+                    _ => return Exception::error(operator.line, "Interpreter.rs", "message")
                 }
             },
-            _ => return Exception::error(19, "Interpreter.rs", "message")
+            // __ => return Exception::error(1, "Interpreter.rs", "message")  rust complaining with that.
         };
 
         Ok(result)
@@ -54,7 +59,7 @@ impl Interpreter {
 fn check_number(value: Literal) -> EvaluateResult<i64> {
     match value {
         Literal::Number(value) => Ok(value),
-        _ => Exception::error(1, "Interpreter.rs/to_number", "Must be a number")
+        __ => Exception::error(1, "Interpreter.rs/check_number", &format!("Operand {:?} Must be a number", __))
     }
 }
 
@@ -64,8 +69,6 @@ fn is_truthy(value: Literal) -> bool {
         _ => true
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
