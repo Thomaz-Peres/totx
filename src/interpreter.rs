@@ -35,6 +35,8 @@ impl Interpreter {
                     TokenEnum::Star => Literal::Number(check_number(left)? * check_number(right)?),
                     TokenEnum::Plus => {
                         match (left, right) {
+                            // (Literal::String(left), Literal::Number(right)) => Literal::String(left + &right.to_string()), // Just because the book send the challenge
+                            // (Literal::Number(left), Literal::String(right)) => Literal::String(left.to_string() + &right), // Just because the book send the challenge
                             (Literal::Number(left), Literal::Number(right)) => Literal::Number(left + right),
                             (Literal::String(left), Literal::String(right)) => Literal::String(left + &right),
                             _ => return Exception::error(operator.line, "Interpreter.rs", "Must be all string or number for PLUS (+)")
